@@ -1,0 +1,127 @@
+---
+title: "Katie Pilarz March Madness"
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## katies march madness models
+
+
+```{r cars}
+
+mm <- read.csv("C:/Users/cjp77/Documents/March Madness/March Madness 0209/Data & Glossary/NCAA_Tourney_2002-2016.csv")
+
+
+#logloss
+MultiLogLoss <- function(act, pred){
+  eps <- 1e-15
+  pred <- pmin(pmax(pred, eps), 1 - eps)
+  sum(act * log(pred) + (1 - act) * log(1 - pred)) * -1/NROW(act)
+}
+
+#calculate difference between the seeds
+mm$seed.distance <- mm$team1_seed - mm$team2_seed
+
+mm$seed.distance <- mm$team1_seed - mm$team2_seed
+
+#calculate difference betweeen defensive efficiencies
+mm$def.diff <- mm$team1_adjde - mm$team2_adjde
+
+mm$def.diff <- mm$team1_adjde - mm$team2_adjde
+
+####################################################################################
+mm$expwin1 <- (mm$team1_adjoe**11.5 / (mm$team1_adjde**11.5 + 
+                                                     mm$team1_adjoe**11.5))
+mm$expwin2 <- (mm$team2_adjoe**11.5 / (mm$team2_adjde**11.5 + 
+                                                     mm$team2_adjoe**11.5))
+
+# probability of winning for team 1
+mm$team1log5 <- (mm$expwin1 - mm$expwin1 * mm$expwin2) / 
+  (mm$expwin1 + mm$expwin2 - 2*mm$expwin1 * mm$expwin2)
+
+# probability of winning for team 2
+mm$team2log5 <- (mm$expwin2 - mm$expwin2 * mm$expwin1) / 
+  (mm$expwin2 + mm$expwin1 - 2*mm$expwin1 * mm$expwin2)
+
+mm$diff.prob <- mm$team1log5 - mm$team2log5
+
+mm$rpi.diff <- as.numeric(mm$team1_rpi_rating) - 
+  as.numeric(mm$team2_rpi_rating)
+
+#stl rate
+mm$stl.diff <- mm$team1_stlrate - mm$team2_stlrate
+
+#split data
+mm.train <- mm[mm$Season < 2015,]
+mm.test <- mm[mm$Season > 2014,]
+#model 1
+
+model1 <- lm(result ~ seed.distance,
+                   data=mm.train)
+summary(model1)
+model.prediction <- predict(model1, mm.train)
+MultiLogLoss(mm.train$result, model.prediction)
+
+test.pred <- predict(model1, mm.test)
+MultiLogLoss(mm.test$result, test.pred)
+
+#model 2
+model2 <- lm(result ~ seed.distance + def.diff,
+             data=mm.train)
+summary(model2)
+model.prediction2 <- predict(model2, mm.train)
+MultiLogLoss(mm.train$result, model.prediction2)
+
+test.pred2 <- predict(model2, mm.test)
+MultiLogLoss(mm.test$result, test.pred2)
+
+#model 3
+model3 <- lm(result ~ seed.distance + rpi.diff + diff.prob,
+             data=mm.train)
+summary(model3)
+model.prediction3 <- predict(model3, mm.train)
+MultiLogLoss(mm.train$result, model.prediction3)
+
+test.pred3 <- predict(model3, mm.test)
+MultiLogLoss(mm.test$result, test.pred3)
+
+#model 4....BEST SO FAR
+model4 <- lm(result ~ seed.distance + diff.prob,
+             data=mm.train)
+summary(model4)
+model.prediction4 <- predict(model4, mm.train)
+MultiLogLoss(mm.train$result, model.prediction4)
+
+test.pred4 <- predict(model4, mm.test)
+MultiLogLoss(mm.test$result, test.pred4)
+
+#model 5
+model5 <- lm(result ~ rpi.diff + diff.prob,
+             data=mm.train)
+summary(model5)
+model.prediction5 <- predict(model5, mm.train)
+MultiLogLoss(mm.train$result, model.prediction5)
+
+test.pred5 <- predict(model5, mm.test)
+MultiLogLoss(mm.test$result, test.pred5)
+
+#model 6
+model6 <- lm(result ~ seed.distance + stl.diff + diff.prob,
+             data=mm.train)
+summary(model6)
+model.prediction6 <- predict(model6, mm.train)
+MultiLogLoss(mm.train$result, model.prediction6)
+
+test.pred6 <- predict(model6, mm.test)
+MultiLogLoss(mm.test$result, test.pred6)
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+
