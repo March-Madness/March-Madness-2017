@@ -1,0 +1,224 @@
+Catherine Pilarz March Madness
+katies march madness models
+mm <- read.csv("C:/Users/cjp77/Documents/March Madness/March Madness 0209/Data & Glossary/NCAA_Tourney_2002-2016.csv")
+
+
+#logloss
+MultiLogLoss <- function(act, pred){
+  eps <- 1e-15
+  pred <- pmin(pmax(pred, eps), 1 - eps)
+  sum(act * log(pred) + (1 - act) * log(1 - pred)) * -1/NROW(act)
+}
+
+#calculate difference between the seeds
+mm$seed.distance <- mm$team1_seed - mm$team2_seed
+
+mm$seed.distance <- mm$team1_seed - mm$team2_seed
+
+#calculate difference betweeen defensive efficiencies
+mm$def.diff <- mm$team1_adjde - mm$team2_adjde
+
+mm$def.diff <- mm$team1_adjde - mm$team2_adjde
+
+####################################################################################
+mm$expwin1 <- (mm$team1_adjoe**11.5 / (mm$team1_adjde**11.5 + 
+                                                     mm$team1_adjoe**11.5))
+mm$expwin2 <- (mm$team2_adjoe**11.5 / (mm$team2_adjde**11.5 + 
+                                                     mm$team2_adjoe**11.5))
+
+# probability of winning for team 1
+mm$team1log5 <- (mm$expwin1 - mm$expwin1 * mm$expwin2) / 
+  (mm$expwin1 + mm$expwin2 - 2*mm$expwin1 * mm$expwin2)
+
+# probability of winning for team 2
+mm$team2log5 <- (mm$expwin2 - mm$expwin2 * mm$expwin1) / 
+  (mm$expwin2 + mm$expwin1 - 2*mm$expwin1 * mm$expwin2)
+
+mm$diff.prob <- mm$team1log5 - mm$team2log5
+
+mm$rpi.diff <- as.numeric(mm$team1_rpi_rating) - 
+  as.numeric(mm$team2_rpi_rating)
+
+#stl rate
+mm$stl.diff <- mm$team1_stlrate - mm$team2_stlrate
+
+#split data
+mm.train <- mm[mm$Season < 2015,]
+mm.test <- mm[mm$Season > 2014,]
+#model 1
+
+model1 <- lm(result ~ seed.distance,
+                   data=mm.train)
+summary(model1)
+## 
+## Call:
+## lm(formula = result ~ seed.distance, data = mm.train)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.92201 -0.36487 -0.00436  0.40572  0.93009 
+## 
+## Coefficients:
+##                Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)    0.495960   0.014992   33.08   <2e-16 ***
+## seed.distance -0.032773   0.001994  -16.44   <2e-16 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 0.4355 on 842 degrees of freedom
+## Multiple R-squared:  0.2429, Adjusted R-squared:  0.242 
+## F-statistic: 270.2 on 1 and 842 DF,  p-value: < 2.2e-16
+model.prediction <- predict(model1, mm.train)
+MultiLogLoss(mm.train$result, model.prediction)
+## [1] 0.5505107
+test.pred <- predict(model1, mm.test)
+MultiLogLoss(mm.test$result, test.pred)
+## [1] 0.5613855
+#model 2
+model2 <- lm(result ~ seed.distance + def.diff,
+             data=mm.train)
+summary(model2)
+## 
+## Call:
+## lm(formula = result ~ seed.distance + def.diff, data = mm.train)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.89204 -0.36895 -0.00419  0.38364  0.97477 
+## 
+## Coefficients:
+##                Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)    0.495396   0.014963  33.109   <2e-16 ***
+## seed.distance -0.028957   0.002672 -10.836   <2e-16 ***
+## def.diff      -0.006620   0.003095  -2.139   0.0327 *  
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 0.4346 on 841 degrees of freedom
+## Multiple R-squared:  0.247,  Adjusted R-squared:  0.2452 
+## F-statistic:   138 on 2 and 841 DF,  p-value: < 2.2e-16
+model.prediction2 <- predict(model2, mm.train)
+MultiLogLoss(mm.train$result, model.prediction2)
+## [1] 0.5481436
+test.pred2 <- predict(model2, mm.test)
+MultiLogLoss(mm.test$result, test.pred2)
+## [1] 0.5550504
+#model 3
+model3 <- lm(result ~ seed.distance + rpi.diff + diff.prob,
+             data=mm.train)
+summary(model3)
+## 
+## Call:
+## lm(formula = result ~ seed.distance + rpi.diff + diff.prob, data = mm.train)
+## 
+## Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -0.9637 -0.3534 -0.0037  0.3426  0.9020 
+## 
+## Coefficients:
+##                 Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)    0.4795513  0.0149270  32.126  < 2e-16 ***
+## seed.distance -0.0057526  0.0050076  -1.149 0.250974    
+## rpi.diff       0.0012555  0.0003371   3.724 0.000209 ***
+## diff.prob      0.4293510  0.0809611   5.303 1.46e-07 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 0.4247 on 840 degrees of freedom
+## Multiple R-squared:  0.2817, Adjusted R-squared:  0.2791 
+## F-statistic: 109.8 on 3 and 840 DF,  p-value: < 2.2e-16
+model.prediction3 <- predict(model3, mm.train)
+MultiLogLoss(mm.train$result, model.prediction3)
+## [1] 0.5266887
+test.pred3 <- predict(model3, mm.test)
+MultiLogLoss(mm.test$result, test.pred3)
+## [1] 0.7626293
+#model 4....BEST SO FAR
+model4 <- lm(result ~ seed.distance + diff.prob,
+             data=mm.train)
+summary(model4)
+## 
+## Call:
+## lm(formula = result ~ seed.distance + diff.prob, data = mm.train)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.98560 -0.36212  0.00362  0.35714  0.96219 
+## 
+## Coefficients:
+##                Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)    0.490050   0.014770  33.178  < 2e-16 ***
+## seed.distance -0.006947   0.005035  -1.380    0.168    
+## diff.prob      0.452825   0.081331   5.568 3.47e-08 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 0.428 on 841 degrees of freedom
+## Multiple R-squared:  0.2698, Adjusted R-squared:  0.2681 
+## F-statistic: 155.4 on 2 and 841 DF,  p-value: < 2.2e-16
+model.prediction4 <- predict(model4, mm.train)
+MultiLogLoss(mm.train$result, model.prediction4)
+## [1] 0.5353104
+test.pred4 <- predict(model4, mm.test)
+MultiLogLoss(mm.test$result, test.pred4)
+## [1] 0.538561
+#model 5
+model5 <- lm(result ~ rpi.diff + diff.prob,
+             data=mm.train)
+summary(model5)
+## 
+## Call:
+## lm(formula = result ~ rpi.diff + diff.prob, data = mm.train)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.96392 -0.35725 -0.00712  0.34488  0.89969 
+## 
+## Coefficients:
+##              Estimate Std. Error t value Pr(>|t|)    
+## (Intercept) 0.4782130  0.0148843  32.129  < 2e-16 ***
+## rpi.diff    0.0012803  0.0003365   3.805 0.000152 ***
+## diff.prob   0.5141295  0.0332996  15.439  < 2e-16 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 0.4248 on 841 degrees of freedom
+## Multiple R-squared:  0.2806, Adjusted R-squared:  0.2789 
+## F-statistic:   164 on 2 and 841 DF,  p-value: < 2.2e-16
+model.prediction5 <- predict(model5, mm.train)
+MultiLogLoss(mm.train$result, model.prediction5)
+## [1] 0.5280789
+test.pred5 <- predict(model5, mm.test)
+MultiLogLoss(mm.test$result, test.pred5)
+## [1] 0.7606282
+#model 6
+model6 <- lm(result ~ seed.distance + stl.diff + diff.prob,
+             data=mm.train)
+summary(model6)
+## 
+## Call:
+## lm(formula = result ~ seed.distance + stl.diff + diff.prob, data = mm.train)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.99814 -0.36045  0.00614  0.35103  0.95646 
+## 
+## Coefficients:
+##               Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)    0.49023    0.01477  33.180  < 2e-16 ***
+## seed.distance -0.00725    0.00505  -1.436    0.151    
+## stl.diff       0.48780    0.60179   0.811    0.418    
+## diff.prob      0.44528    0.08188   5.438 7.05e-08 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 0.4281 on 840 degrees of freedom
+## Multiple R-squared:  0.2704, Adjusted R-squared:  0.2678 
+## F-statistic: 103.8 on 3 and 840 DF,  p-value: < 2.2e-16
+model.prediction6 <- predict(model6, mm.train)
+MultiLogLoss(mm.train$result, model.prediction6)
+## [1] 0.5367031
+test.pred6 <- predict(model6, mm.test)
+MultiLogLoss(mm.test$result, test.pred6)
+## [1] 0.5335475
+knitr::opts_chunk$set(echo = TRUE)
